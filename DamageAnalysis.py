@@ -1,16 +1,19 @@
+import matplotlib.pyplot as plt
+
 import Utils as utils
 
-def get_damage(path: str, file_name: str, seeds: int = 3) -> dict[str, dict]:
+def get_damage(path: str, file_name: str, seeds: int = 3, dose: float = 1.0) -> dict[str, dict]:
 
     """
     Method used to calculate the total amount of damage with its associated standard deviation
+    :param dose: Dose yeield to analyze damage
     :param path: File path directory
     :param file_name: File name (without extension)
     :param seeds: Number of seeds used to calculate the standard deviation
     :return: A dictionary with the damage type as key, and another dictionary with the standard deviation and damage yield values.
     """
 
-    results: list[dict[str, float]] = [get_total_damage(utils.get_dataframe(file_name, f"{path}/seed{seed}")) for seed in range(1, seeds+1)]
+    results: list[dict[str, float]] = [get_total_damage(utils.get_dataframe(file_name, f"{path}/seed{seed}"), dose=dose) for seed in range(1, seeds+1)]
 
     result_with_error = {
         "Total SSBs": {"value": 0, "error": 0.0, "values": []},
@@ -32,7 +35,7 @@ def get_damage(path: str, file_name: str, seeds: int = 3) -> dict[str, dict]:
 
     return result_with_error
 
-def get_total_damage(df: utils.pd.DataFrame, dose: int = 1.0) -> dict[str, float]:
+def get_total_damage(df: utils.pd.DataFrame, dose: float = 1.0) -> dict[str, float]:
 
     """
     Return the damage yield per Gy
@@ -117,3 +120,25 @@ def plot_full_damage_with_error(damage: dict[str, dict], log: bool = False):
     utils.plt.title("Damage Yield (per Gy)")
     utils.plt.ylabel(y_label)
     utils.plt.show()
+
+def compare_damage_with_error(damagelist: list[dict[str,dict]], scenarios: dict[str, int], damagetype: str = "Total DSBs"):
+    """
+    Method used to plot and compare different scenarios
+    :param damagelist: A list of damage dictionaries that are going to be compared. The key value is the name used to be displayed in the legend.
+    :param scenarios: A dictionary describing the name of the scenario and the energy used.
+    :param damagetype: Name of the parameter to be analyzed
+    :return:
+    """
+
+    legends = []
+    plt.figure(figsize=(6,8))
+
+    for index in range(len(damagelist)):
+        x = list(scenarios.values())[index]
+        y = damagelist[index][damagetype]["value"]
+        yerr = damagelist[index][damagetype]["error"]
+        plt.errorbar(x,y,yerr=yerr, fmt="o", ecolor="black", capsize=8)
+        legends.append(list(scenarios.keys())[index])
+
+    plt.legend(legends)
+    plt.show()
