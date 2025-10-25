@@ -22,6 +22,7 @@ def get_damage(path: str, file_name: str, seeds: int = 3, dose: float = 1.0) -> 
         "Indirect SSBs": {"value": 0, "error": 0.0, "values": []},
         "Direct DSBs": {"value": 0, "error": 0.0, "values": []},
         "Indirect DSBs": {"value": 0, "error": 0.0, "values": []},
+        "Ratio": {"value": 0, "error": 0.0, "values": []},
     }
 
     for result in results:
@@ -44,7 +45,10 @@ def get_total_damage(df: utils.pd.DataFrame, dose: float = 1.0) -> dict[str, flo
     :return: A dictionary with the following keys (Total SSBs, Total DSBs, Direct SSBs, Indirect SSBs, Direct DSBs, Indirect DSBs )
     """
 
-    df = df[df["Dose_per_event_Gy"] <= dose]
+    reset_points = df['Dose_per_event_Gy'].diff() < 0
+    print(reset_points)
+    first_reset_index = reset_points.idxmin() if reset_points.any() else len(df)
+    filter_df = df.loc[:first_reset_index-1]
 
     return {
         "Total SSBs": df["SSBs"].sum(),
@@ -52,7 +56,8 @@ def get_total_damage(df: utils.pd.DataFrame, dose: float = 1.0) -> dict[str, flo
         "Direct SSBs": df ["SSBs_Direct"].sum(),
         "Indirect SSBs": df["SSBs_Indirect"].sum(),
         "Direct DSBs": df["DSBs_Direct"].sum(),
-        "Indirect DSBs": df["DSBs_Indirect"].sum()
+        "Indirect DSBs": df["DSBs_Indirect"].sum(),
+        "Ratio": df["SSBs"].sum() / df["DSBs"].sum()
     }
 
 def get_damage_info(data: dict) -> None:
@@ -132,7 +137,7 @@ def compare_damage_with_error(damagelist: list[dict[str,dict]], scenarios: dict[
 
     legends = []
     plt.figure(figsize=(6,8))
-
+    plt.title(damagetype)
     for index in range(len(damagelist)):
         x = list(scenarios.values())[index]
         y = damagelist[index][damagetype]["value"]
