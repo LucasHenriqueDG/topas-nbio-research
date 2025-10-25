@@ -1,0 +1,16 @@
+{
+
+	"setup1": {
+		"seeds": 5,
+		"particle": "proton",
+		"energy": 50.0,
+		"histories": 100
+	},
+	"setup2": {
+		"seeds": 5,
+		"particle": "proton",
+		"energy": 60.0,
+		"histories": 100
+	}
+		
+}
