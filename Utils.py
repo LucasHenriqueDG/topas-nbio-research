@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import json
 
 def get_header(path: str) -> list:
     columns = []
@@ -25,51 +26,117 @@ def get_phsp(path: str, header: list) -> pd.DataFrame:
 
 def get_dataframe(filename: str, dirpath: str) -> pd.DataFrame:
     """
-        Return the dataframe for the analysis
         :param filename: name of the file (without extension)
         :param dirpath: path to the directory where the file is located
-        :return:
+        :return: The dataframe for the analysis
     """
 
     header = get_header(f"{dirpath}/{filename}.header")
     return get_phsp(f"{dirpath}/{filename}.phsp", header)
 
-def create_seed_dir(folder_name: str, tgt_dir: str = "outputs/topas") -> int:
+def create_seed_dir(folder_name: str, tgt_dir: str = "outputs") -> int:
 
     """
     Method used to create the directory for the new simulation
     :param tgt_dir: Partial path to the folder (final path will be tgt_dir/folder_name)
     :param folder_name: Name of the folder
-    :return:
+    :return: The seed number
     """
 
     os.makedirs(tgt_dir+"/"+folder_name, exist_ok=True)
-    files = os.listdir(folder_name)
+    files = os.listdir(f"{tgt_dir}/{folder_name}")
 
     index = len(files) + 1
     if index == 0:
-        new_dir = f"{folder_name}/seed1"
+        new_dir = f"{tgt_dir}/{folder_name}/seed1"
     else:
-        new_dir = f"{folder_name}/seed{index}"
+        new_dir = f"{tgt_dir}/{folder_name}/seed{index}"
 
     os.makedirs(new_dir, exist_ok=True)
     return index
 
-def move_files(folder_name, src_dir: str, filter_list: list[str], tgt_dir: str = "topas/outputs"):
+def move_files(folder_name, src_dir: str, include_list: list[str], tgt_dir: str = "outputs"):
 
     """
     Method used to move the files generated at the end of the simulation
     :param folder_name: Name of the folder created
     :param src_dir: path to the directory where the files are located.
-    :param filter_list: Files that are not going to be moved during the process (place the name of the input file here, alongside with the
-    supportFiles folder).
+    :param include_list: Files that are going to be moved during the process.
     :param tgt_dir: Partial path name where the files are going to be moved (final path will be tgt_dir/folder_name)
-    :return:
     """
 
-    index = create_seed_dir(f"{tgt_dir}/{folder_name}")
+    index = create_seed_dir(folder_name,tgt_dir)
 
-    check_list = os.listdir(src_dir)
+    check_list = os.listdir()
     for file in check_list:
-        if not file in filter_list:
-            os.rename(f"{src_dir}/{file}", f"{tgt_dir}/{folder_name}/seed{index}/{file}")
+        if file in include_list:
+            os.rename(file, f"{tgt_dir}/{folder_name}/seed{index}/{file}")
+
+
+def read_param_file(filename: str) -> dict[str, dict]:
+
+    """
+    Method used to read the parameters file
+    :param filename: Name of the parameter file (without extension)
+    :return: A dictionary containing the parameters
+    """
+
+    with open(f"{filename}.json") as file:
+        return json.load(file)
+
+def check_simulation() -> bool:
+    """
+    Method used to check if the simulation is complete.
+    :return: a boolean indicating if the simulation is complete
+    """
+
+    if os.path.exists("DNADamage.phsp"):
+        size = os.path.getsize("DNADamage.phsp")
+        if size != 0:
+            return True
+    return False
+
+def check_seeds(folder_name, tgt_dir: str = "topas/outputs") -> int:
+    """
+    Method used to check if the seeds are complete.
+    :return: Current number of seeds (this will be checked based in the directory seed number in the folder name)
+    """
+
+    seeds = os.listdir(f"{tgt_dir}/{folder_name}")
+    seed_numbers = [int(seeds.split("d")[-1]) for seeds in seeds]
+    return np.max(seed_numbers)
+
+def update_parameters(params: dict):
+    """
+    Method used to update the parameters of the simulation
+    :param params: dictionary imported from the json file
+    """
+
+    with open("run.txt", "r") as file:
+        lines = file.readlines()
+
+    with open("run.txt", "w") as file:
+        for line in lines:
+            if "=" not in line:
+                file.write(line)
+                continue
+
+            key = line.split("=")[0]
+
+            if "Seed" in key:
+                new_value = params["seeds"]
+            elif "BeamParticle" in key:
+                new_value = f'"{params["particle"]}"'
+            elif "BeamEnergy" in key:
+                new_value = f"{params["energy"]} MeV"
+            elif "NumberOfHistoriesInRun" in key:
+                new_value = params["histories"]
+            else:
+                new_value = None
+
+            if new_value is not None:
+                line = f"{key} = {new_value}\n"
+
+            file.write(line)
+
+
