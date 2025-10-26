@@ -1,11 +1,6 @@
 import subprocess
 import time
-import os
 import Utils as utils
-
-
-
-path = os.path.expanduser("~/Applications/TOPAS/OpenTOPAS-install/bin/topas")
 
 simulations = utils.read_param_file("params")
 
@@ -33,9 +28,13 @@ for name, params in simulations.items():
         tries += 1
         print(f"Starting simulation for seed {cur_seed}. Trying for the {tries}° seed...")
         time.sleep(5)
-        subprocess.run([path, "run.txt"])
+        cmd = "~/Applications/TOPAS/OpenTOPAS-install/bin/topas run.txt"
+        process = subprocess.Popen(cmd, shell=True)
+        process.wait()
+
+        time.sleep(1)
+
         print("Simulation finished. Checking if there were any crashes...")
-        time.sleep(3)
         outcome = utils.check_simulation()
         if outcome:
             print("Simulation was successful. Moving files...")
@@ -48,15 +47,15 @@ for name, params in simulations.items():
             ]
             utils.move_files(folder_name, "", include_list=include_list, tgt_dir=tgt_dir)
             successful_simulations += 1
-            max_seed = utils.check_seeds(folder_name, tgt_dir)
-            cur_seed += 1
 
             if cur_seed >= seeds:
                 break
         else:
             print("Simulation crashed. Starting a new seed...")
+            utils.save_problematic_seed(cur_seed, particle)
             time.sleep(1)
 
+        cur_seed += 1
 
     print(f"Finishing simulations for {name}")
     print(f"Total amount of tries: {tries}")
