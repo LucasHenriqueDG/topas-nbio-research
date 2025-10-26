@@ -139,4 +139,13 @@ def update_parameters(params: dict):
 
             file.write(line)
 
+def save_problematic_seed(seed: int, particle: str):
+    if os.path.exists("p_seeds.txt"):
+        with open("p_seeds.txt", 'r') as file:
+            lines = file.readlines()
+    else:
+        lines = []
 
+    with open("p_seeds.txt", "w") as file:
+        lines.append(f"{particle}: {seed}\n")
+        file.writelines(lines)
